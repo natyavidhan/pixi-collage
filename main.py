@@ -7,8 +7,9 @@ from sklearn.neighbors import KDTree
 import glob
 from functools import lru_cache
 import random
+from tqdm import tqdm  # Import tqdm for progress bar
 
-def resize(input_path="input.jpg", output_path="resized_image.jpg", max_size=128):
+def resize(input_path="input.jpg", output_path="resized_image.jpg", max_size=256):
     img = Image.open(input_path)
     h, w = img.size
     ratio = max_size / max(h, w)
@@ -52,17 +53,25 @@ def build_collage(pixel_data, filenames, color_tree, frames_dir="frames", tile_s
     height, width = pixel_data.shape[:2]
     collage = Image.new("RGB", (width * tile_size, height * tile_size))
     
-    for y in range(height):
-        for x in range(width):
-            pixel_idx = y * width + x
-            closest_indices = indices[pixel_idx]
-            selected_idx = random.choice(closest_indices)
-            fname = filenames[selected_idx]
-            
-            tile = get_tile(fname, frames_dir, tile_size)
-            collage.paste(tile, (x * tile_size, y * tile_size))
+    # Create a flat progress bar for all pixels
+    total_pixels = height * width
+    with tqdm(total=total_pixels, desc="Building Collage") as pbar:
+        for y in range(height):
+            for x in range(width):
+                pixel_idx = y * width + x
+                closest_indices = indices[pixel_idx]
+                selected_idx = random.choice(closest_indices)
+                fname = filenames[selected_idx]
+                
+                tile = get_tile(fname, frames_dir, tile_size)
+                collage.paste(tile, (x * tile_size, y * tile_size))
+                
+                # Update progress bar
+                pbar.update(1)
     
+    print("Saving collage...")
     collage.save("final_collage.jpg")
+    print("Collage saved as final_collage.jpg")
 
 def main():
     resize()
